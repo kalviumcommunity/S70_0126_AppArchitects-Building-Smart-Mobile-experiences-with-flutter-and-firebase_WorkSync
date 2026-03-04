@@ -11,6 +11,10 @@ import 'clients_screen.dart';
 import 'payments_screen.dart';
 import 'projects_screen.dart';
 import 'schedule_screen.dart';
+import 'team_screen.dart';
+import 'reports_screen.dart';
+import '../services/notification_service.dart';
+import 'messages_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -64,6 +68,9 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ── DEADLINE NOTIFIER (hidden, fires push) ────────────
+                    _DeadlineNotifier(uid: uid),
+
                     // ── HEADER ──────────────────────────────────────────────
                     _buildHeader(context, greeting, firstName, userName, uid),
 
@@ -585,14 +592,20 @@ class DashboardScreen extends StatelessWidget {
         icon: Icons.groups_rounded,
         color: const Color(0xFFF4B400),
         bgColor: const Color(0xFFFFFDE7),
-        onTap: () => _showComingSoon(context, "Team"),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TeamScreen()),
+        ),
       ),
       _CategoryItem(
         label: "Reports",
         icon: Icons.bar_chart_rounded,
         color: const Color(0xFFDB4437),
         bgColor: const Color(0xFFFCE8E6),
-        onTap: () => _showComingSoon(context, "Reports"),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ReportsScreen()),
+        ),
       ),
       _CategoryItem(
         label: "Invoices",
@@ -609,7 +622,10 @@ class DashboardScreen extends StatelessWidget {
         icon: Icons.chat_bubble_outline_rounded,
         color: const Color(0xFFE91E8C),
         bgColor: const Color(0xFFFCE4EC),
-        onTap: () => _showComingSoon(context, "Messages"),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MessagesScreen()),
+        ),
       ),
     ];
 
@@ -1103,6 +1119,55 @@ class _ClientBadge extends StatelessWidget {
             ),
           ),
         );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _DeadlineNotifier — invisible widget that fires a push notification once
+// per app session when the user has tasks due today.
+// ─────────────────────────────────────────────────────────────────────────────
+class _DeadlineNotifier extends StatefulWidget {
+  final String uid;
+  const _DeadlineNotifier({required this.uid});
+
+  @override
+  State<_DeadlineNotifier> createState() => _DeadlineNotifierState();
+}
+
+class _DeadlineNotifierState extends State<_DeadlineNotifier> {
+  bool _notified = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final db = Provider.of<DatabaseService?>(context);
+    if (db == null) return const SizedBox.shrink();
+
+    return StreamBuilder<List<Task>>(
+      stream: db.tasks,
+      builder: (context, snap) {
+        if (!_notified && snap.hasData) {
+          final now = DateTime.now();
+          final todayTitles = snap.data!
+              .where((t) =>
+                  t.dueDate.year == now.year &&
+                  t.dueDate.month == now.month &&
+                  t.dueDate.day == now.day &&
+                  t.status.toLowerCase() != 'completed' &&
+                  t.status.toLowerCase() != 'done')
+              .map((t) => t.title)
+              .toList();
+
+          if (todayTitles.isNotEmpty) {
+            _notified = true;
+            // Fire after the frame so the widget tree is stable
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              NotificationService().showDeadlinesToday(todayTitles);
+            });
+          }
+        }
+        return const SizedBox.shrink();
       },
     );
   }

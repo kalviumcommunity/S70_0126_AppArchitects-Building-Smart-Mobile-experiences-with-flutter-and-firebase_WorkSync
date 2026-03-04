@@ -3,6 +3,7 @@ import '../models/client.dart';
 import '../models/task.dart';
 import '../models/project.dart';
 import '../models/payment.dart';
+import '../models/team_member.dart';
 
 // Firestore access layer: root collections (clients, tasks, payments, projects)
 class DatabaseService {
@@ -111,6 +112,31 @@ class DatabaseService {
 
   Future<void> deletePayment(String id) {
     return _db.collection('payments').doc(id).delete();
+  }
+
+  // Team Members
+  Stream<List<TeamMember>> get teamMembers {
+    return _db
+        .collection('team_members')
+        .where('userId', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((d) => TeamMember.fromMap(d.data(), d.id))
+          .toList();
+    });
+  }
+
+  Future<void> addTeamMember(TeamMember m) {
+    return _db.collection('team_members').add(m.toMap());
+  }
+
+  Future<void> updateTeamMember(TeamMember m) {
+    return _db.collection('team_members').doc(m.id).update(m.toMap());
+  }
+
+  Future<void> deleteTeamMember(String id) {
+    return _db.collection('team_members').doc(id).delete();
   }
 
   // User Profile
