@@ -67,12 +67,13 @@ class DatabaseService {
     return _db
         .collection('projects')
         .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final list = snapshot.docs
           .map((d) => Project.fromMap(d.data() as Map<String, dynamic>, d.id))
           .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 
@@ -93,12 +94,13 @@ class DatabaseService {
     return _db
         .collection('payments')
         .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final list = snapshot.docs
           .map((d) => Payment.fromMap(d.data() as Map<String, dynamic>, d.id))
           .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 
@@ -143,6 +145,12 @@ class DatabaseService {
   Future<void> updateUserPhoto(String base64Image) {
     return _db.collection('users').doc(uid).set({
       'photoUrl': base64Image,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> updateUserCover(String coverData) {
+    return _db.collection('users').doc(uid).set({
+      'coverUrl': coverData,
     }, SetOptions(merge: true));
   }
 }

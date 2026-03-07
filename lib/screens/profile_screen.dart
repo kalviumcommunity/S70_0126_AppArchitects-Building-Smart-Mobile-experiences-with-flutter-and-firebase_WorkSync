@@ -6,6 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../services/database_service.dart';
+import '../models/project.dart';
+import '../models/task.dart';
+import '../models/client.dart';
 import '../services/theme_provider.dart';
 import 'login_screen.dart';
 
@@ -19,6 +22,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  bool _isUploadingCover = false;
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -46,7 +50,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (mounted) {
             await Provider.of<DatabaseService>(context, listen: false).updateUserPhoto(dataUrl);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profile photo updated successfully!')),
+              const SnackBar(
+                content: Text('Profile photo updated successfully!'),
+                backgroundColor: Colors.green,
+              ),
             );
           }
         }
@@ -62,6 +69,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isUploading = false);
       }
     }
+  }
+
+  Future<void> _pickCover(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 60,
+      );
+
+      if (pickedFile != null) {
+        setState(() => _isUploadingCover = true);
+
+        final File imageFile = File(pickedFile.path);
+        final List<int> imageBytes = await imageFile.readAsBytes();
+        
+        final String base64Image = base64Encode(imageBytes);
+        final String dataUrl = "data:image/jpeg;base64,$base64Image";
+
+        final user = FirebaseAuth.instance.currentUser;
+
+        if (user != null) {
+          if (mounted) {
+            await Provider.of<DatabaseService>(context, listen: false).updateUserCover(dataUrl);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cover photo updated successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating cover: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingCover = false);
+      }
+    }
+  }
+
+  void _showColorPicker() {
+    final colors = [
+      const Color(0xFF1A73E8), // Default Blue
+      const Color(0xFF0F9D58), // Green
+      const Color(0xFFDB4437), // Red
+      const Color(0xFFF4B400), // Yellow
+      const Color(0xFF7B2FF7), // Purple
+      const Color(0xFFE91E8C), // Pink
+      const Color(0xFF212121), // Dark
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Select Background Color", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: colors.map((color) {
+                  return GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final String colorString = "color:#${color.value.toRadixString(16).substring(2)}";
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user != null) {
+                        setState(() => _isUploadingCover = true);
+                        await Provider.of<DatabaseService>(context, listen: false).updateUserCover(colorString);
+                        setState(() => _isUploadingCover = false);
+                      }
+                    },
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCoverPickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text("Background Image", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF1A73E8)),
+                title: const Text("Take Photo"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickCover(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF1A73E8)),
+                title: const Text("Choose from Gallery"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickCover(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.color_lens_rounded, color: Color(0xFF1A73E8)),
+                title: const Text("Choose Solid Color"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showColorPicker();
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showComingSoon(BuildContext context, String feature) {
@@ -183,15 +350,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildStatsRow(),
                   const SizedBox(height: 32),
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
-                    builder: (context, snapshot) {
-                      String userName = "WorkSync User";
-                      if (snapshot.hasData && snapshot.data!.exists) {
-                        userName = (snapshot.data!.data() as Map<String, dynamic>)['name'] ?? "WorkSync User";
-                      }
+                  user?.uid != null && user!.uid.isNotEmpty
+                    ? StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+                        builder: (context, snapshot) {
+                          String userName = "WorkSync User";
+                          if (snapshot.hasData && snapshot.data!.exists) {
+                            userName = (snapshot.data!.data() as Map<String, dynamic>)['name'] ?? "WorkSync User";
+                          }
 
-                      return Column(
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSectionTitle("Account Settings"),
+                              const SizedBox(height: 12),
+                              _buildSettingsCard(context, [
+                                _SettingsItem(
+                                  icon: Icons.person_outline,
+                                  label: "Edit Profile",
+                                  onTap: () => _showEditProfileDialog(context, userName),
+                                ),
+                                _SettingsItem(
+                                  icon: Icons.notifications_none_rounded,
+                                  label: "Notifications",
+                                  trailing: const Text("On", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                                  onTap: () => _showComingSoon(context, "Notifications toggle"),
+                                ),
+                                _SettingsItem(
+                                  icon: Icons.security_outlined,
+                                  label: "Security",
+                                  onTap: () => _showComingSoon(context, "Security settings"),
+                                ),
+                              ]),
+                            ],
+                          );
+                        }
+                      )
+                    : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildSectionTitle("Account Settings"),
@@ -200,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _SettingsItem(
                               icon: Icons.person_outline,
                               label: "Edit Profile",
-                              onTap: () => _showEditProfileDialog(context, userName),
+                              onTap: () => _showEditProfileDialog(context, "WorkSync User"),
                             ),
                             _SettingsItem(
                               icon: Icons.notifications_none_rounded,
@@ -215,9 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ]),
                         ],
-                      );
-                    }
-                  ),
+                      ),
                   const SizedBox(height: 28),
                   _buildSectionTitle("Preferences"),
                   const SizedBox(height: 12),
@@ -273,117 +466,176 @@ class _ProfileScreenState extends State<ProfileScreen> {
       expandedHeight: 280,
       pinned: true,
       backgroundColor: const Color(0xFF1A73E8),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined, color: Colors.white),
+          onPressed: _showCoverPickerOptions,
+          tooltip: "Change Background",
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
-            builder: (context, snapshot) {
-              String name = "WorkSync User";
-              String? photoData;
-              if (snapshot.hasData && snapshot.data!.exists) {
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                name = data['name'] ?? "WorkSync User";
-                photoData = data['photoUrl'];
-              }
+        background: uid.isEmpty ? Container(color: const Color(0xFF1A73E8)) : StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+          builder: (context, snapshot) {
+            String name = "WorkSync User";
+            String? photoData;
+            String? coverData;
+            if (snapshot.hasData && snapshot.data!.exists) {
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              name = data['name'] ?? "WorkSync User";
+              photoData = data['photoUrl'];
+              coverData = data['coverUrl'];
+            }
 
-              ImageProvider? imageProvider;
-              if (photoData != null && photoData.startsWith("data:image")) {
-                try {
-                  final String base64String = photoData.split(",")[1];
-                  imageProvider = MemoryImage(base64Decode(base64String));
-                } catch (e) {
-                  print("Error decoding base64 image: $e");
-                }
+            ImageProvider? imageProvider;
+            if (photoData != null && photoData.startsWith("data:image")) {
+              try {
+                final String base64String = photoData.split(",")[1];
+                imageProvider = MemoryImage(base64Decode(base64String));
+              } catch (e) {
+                print("Error decoding base64 image: $e");
               }
+            }
 
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
-                  Stack(
+            Widget coverBackground;
+            if (coverData != null && coverData.startsWith("data:image")) {
+              try {
+                final String base64String = coverData.split(",")[1];
+                coverBackground = Image.memory(
+                  base64Decode(base64String),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                );
+              } catch (e) {
+                coverBackground = Container(color: const Color(0xFF1A73E8));
+              }
+            } else if (coverData != null && coverData.startsWith("color:#")) {
+              try {
+                final String hexCode = coverData.substring(7);
+                final int colorValue = int.parse(hexCode, radix: 16);
+                coverBackground = Container(color: Color(colorValue | 0xFF000000));
+              } catch (e) {
+                coverBackground = Container(color: const Color(0xFF1A73E8));
+              }
+            } else {
+              coverBackground = Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              );
+            }
+
+            return Stack(
+              children: [
+                Positioned.fill(child: coverBackground),
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.5)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_isUploadingCover)
+                   const Positioned.fill(
+                     child: Center(
+                       child: CircularProgressIndicator(color: Colors.white),
+                     ),
+                   ),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
+                      const SizedBox(height: 40),
+                      Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.white24,
-                          backgroundImage: imageProvider,
-                          child: imageProvider == null
-                              ? Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : "U",
-                                  style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
-                                )
-                              : null,
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.white24,
+                              backgroundImage: imageProvider,
+                              child: imageProvider == null
+                                  ? Text(
+                                      name.isNotEmpty ? name[0].toUpperCase() : "U",
+                                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          if (_isUploading)
+                            const Positioned.fill(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _showPickerOptions,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.edit_rounded, size: 20, color: Color(0xFF1A73E8)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                      if (_isUploading)
-                        const Positioned.fill(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: _showPickerOptions,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.edit_rounded, size: 20, color: Color(0xFF1A73E8)),
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.8),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    email,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildStatsRow() {
+    final db = Provider.of<DatabaseService?>(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
@@ -400,11 +652,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStatItem("Projects", "12", Icons.folder_open_rounded, const Color(0xFF1A73E8)),
+          StreamBuilder<List<Project>>(
+            stream: db?.projects,
+            builder: (ctx, snap) => _buildStatItem("Projects", snap.hasData ? snap.data!.length.toString() : "0", Icons.folder_open_rounded, const Color(0xFF1A73E8)),
+          ),
           _buildDivider(),
-          _buildStatItem("Tasks", "48", Icons.check_circle_outline_rounded, const Color(0xFF0F9D58)),
+          StreamBuilder<List<Task>>(
+            stream: db?.tasks,
+            builder: (ctx, snap) => _buildStatItem("Tasks", snap.hasData ? snap.data!.length.toString() : "0", Icons.check_circle_outline_rounded, const Color(0xFF0F9D58)),
+          ),
           _buildDivider(),
-          _buildStatItem("Clients", "8", Icons.people_outline_rounded, const Color(0xFF7B2FF7)),
+          StreamBuilder<List<Client>>(
+            stream: db?.clients,
+            builder: (ctx, snap) => _buildStatItem("Clients", snap.hasData ? snap.data!.length.toString() : "0", Icons.people_outline_rounded, const Color(0xFF7B2FF7)),
+          ),
         ],
       ),
     );
@@ -515,14 +776,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: double.infinity,
       height: 60,
       child: ElevatedButton.icon(
-        onPressed: () async {
-          await FirebaseAuth.instance.signOut();
-          if (context.mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (route) => false,
-            );
-          }
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text("Logout"),
+              content: const Text("Are you sure you want to log out?"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx); // Close dialog
+                    await FirebaseAuth.instance.signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        (route) => false,
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDB4437),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Logout"),
+                ),
+              ],
+            ),
+          );
         },
         icon: const Icon(Icons.logout_rounded, color: Colors.white),
         label: const Text(

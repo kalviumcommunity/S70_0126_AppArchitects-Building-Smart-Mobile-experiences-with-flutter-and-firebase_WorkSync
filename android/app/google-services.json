@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "318423042446",
-    "project_id": "worksync-c570a",
-    "storage_bucket": "worksync-c570a.firebasestorage.app"
+    "project_number": "962184695569",
+    "project_id": "mobileprojectapp1111",
+    "storage_bucket": "mobileprojectapp1111.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:318423042446:android:35e097d4c644f63e31fcdf",
-        "android_client_info": {
-          "package_name": "MainActivity.kt"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAVPsYWI2Se1fmeP-5xlNZ_wGZO7xwLf60"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:318423042446:android:805e074abb37f02931fcdf",
+        "mobilesdk_app_id": "1:962184695569:android:3c116124e7ee25dc1ac6b0",
         "android_client_info": {
           "package_name": "com.example.worksync"
         }
@@ -34,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAVPsYWI2Se1fmeP-5xlNZ_wGZO7xwLf60"
+          "current_key": "AIzaSyDqJ0EOMDL7aSlHPtWgWVgNAMrdHbhbsNc"
         }
       ],
       "services": {

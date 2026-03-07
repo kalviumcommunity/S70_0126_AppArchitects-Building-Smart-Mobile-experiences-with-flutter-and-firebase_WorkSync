@@ -41,17 +41,21 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       setState(() => isLoading = true);
+      print("Starting signup process...");
 
       // Create user in Firebase Auth
+      print("Calling FirebaseAuth.instance.createUserWithEmailAndPassword...");
       UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      print("FirebaseAuth success. UID: ${userCredential.user?.uid}");
 
       String uid = userCredential.user!.uid;
 
       // Store user data in Firestore using UID (Correct Structure)
+      print("Calling FirebaseFirestore.instance.collection('users').doc(uid).set...");
       await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
@@ -59,30 +63,48 @@ class _SignupScreenState extends State<SignupScreen> {
         "name": name,
         "email": email,
         "createdAt": Timestamp.now(),
+      }).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception("Firestore connection timed out. Have you created the Firestore Database in your Firebase Console?");
       });
-
-      setState(() => isLoading = false);
+      print("Firestore set success.");
 
       if (!mounted) return;
+      setState(() => isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Signup Successful")),
-      );
-
-      // Navigate to Main App
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const MainNavigation(),
+        const SnackBar(
+          content: Text("Signup Successful. Please login."),
+          backgroundColor: Colors.green,
         ),
       );
 
-    } on FirebaseAuthException catch (e) {
+      // Navigate back to Login
+      Navigator.pop(context);
 
+    } on FirebaseAuthException catch (e) {
+      print("FirebaseAuthException caught: ${e.code} - ${e.message}");
+      if (!mounted) return;
       setState(() => isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Signup Failed")),
+      );
+    } on FirebaseException catch (e) {
+      print("FirebaseException caught: ${e.code} - ${e.message}");
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Firebase Error: ${e.message}")),
+      );
+    } catch (e, stacktrace) {
+      print("Generic Exception caught: $e");
+      print("Stacktrace: $stacktrace");
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${e.toString()}")),
       );
     }
   }

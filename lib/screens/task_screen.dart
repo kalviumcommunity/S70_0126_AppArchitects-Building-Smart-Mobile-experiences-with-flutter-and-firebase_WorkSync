@@ -67,7 +67,10 @@ class _TaskScreenState extends State<TaskScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.task == null ? 'Task created!' : 'Task updated!')),
+          SnackBar(
+            content: Text(widget.task == null ? 'Task created!' : 'Task updated!'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       }

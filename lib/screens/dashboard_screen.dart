@@ -216,7 +216,7 @@ class DashboardScreen extends StatelessWidget {
                         color: Colors.white70, size: 13),
                     const SizedBox(width: 6),
                     Text(
-                      DateFormat('EEE, MMM d yyyy').format(DateTime.now()),
+                      DateFormat('hh:mm a • dd/MM/yyyy').format(DateTime.now()),
                       style: const TextStyle(
                           color: Colors.white70, fontSize: 12),
                     ),
