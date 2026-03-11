@@ -48,7 +48,8 @@ class _TaskScreenState extends State<TaskScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final db = Provider.of<DatabaseService>(context, listen: false);
+      final db = context.read<DatabaseService?>();
+      if (db == null) return;
       
       final newTask = Task(
         id: widget.task?.id ?? '',

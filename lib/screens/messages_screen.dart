@@ -248,13 +248,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
           keyboardType: TextInputType.emailAddress,
           autofocus: true,
         ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const TranslatedText("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE91E8C),
+              backgroundColor: const Color(0xFF0F9D58), // Green for start chat
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
             ),
             onPressed: () async {
               final email = emailCtrl.text.trim().toLowerCase();
@@ -262,7 +267,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               Navigator.pop(ctx);
               await _startConversationWithEmail(email);
             },
-            child: const TranslatedText("Start Chat"),
+            child: const TranslatedText("Start Chat", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

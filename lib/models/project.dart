@@ -7,6 +7,7 @@ class Project {
   final String? description;
   final String status; // 'active', 'completed', 'on hold'
   final DateTime createdAt;
+  final List<String> collaborators;
 
   Project({
     required this.id,
@@ -15,6 +16,7 @@ class Project {
     this.description,
     required this.status,
     required this.createdAt,
+    this.collaborators = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -24,6 +26,7 @@ class Project {
       'description': description,
       'status': status,
       'createdAt': createdAt,
+      'collaborators': collaborators,
     };
   }
 
@@ -35,6 +38,7 @@ class Project {
       description: map['description'],
       status: map['status'] ?? 'active',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      collaborators: List<String>.from(map['collaborators'] ?? []),
     );
   }
 }

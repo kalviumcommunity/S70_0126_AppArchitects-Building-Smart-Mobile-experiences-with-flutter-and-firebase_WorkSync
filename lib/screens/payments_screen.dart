@@ -198,16 +198,31 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const TranslatedText("Delete Payment?"),
-        content: TranslatedText("Are you sure you want to delete this payment from \"${payment.clientName}\"?"),
+        content: TranslatedText("Are you sure you want to delete this payment record for \"${payment.clientName}\"?"),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const TranslatedText("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
             onPressed: () {
               db.deletePayment(payment.id);
               Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: TranslatedText("Payment record deleted"), backgroundColor: Colors.red),
+              );
             },
-            child: const TranslatedText("Delete", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDB4437),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const TranslatedText("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

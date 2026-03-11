@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../models/project.dart';
+import '../models/app_notification.dart';
 import '../widgets/translated_text.dart';
 
 class ProjectsScreen extends StatelessWidget {
@@ -13,7 +15,7 @@ class ProjectsScreen extends StatelessWidget {
     final db = Provider.of<DatabaseService?>(context);
 
     if (db == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: const Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -139,16 +141,172 @@ class ProjectsScreen extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 8),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round())),
-                const SizedBox(width: 6),
-                TranslatedText("Created: ${DateFormat('MMM dd, yyyy').format(project.createdAt)}",
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha((0.6 * 255).round()), 
-                    fontSize: 12,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round())),
+                    const SizedBox(width: 6),
+                    TranslatedText("Created: ${DateFormat('MMM dd, yyyy').format(project.createdAt)}",
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withAlpha((0.6 * 255).round()), 
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
+                if (project.userId == db.uid)
+                  TextButton.icon(
+                    onPressed: () => _showInviteDialog(context, db, project),
+                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+                    label: const TranslatedText("Invite", style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  ),
               ],
+            ),
+            if (project.collaborators.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.people_outline_rounded, size: 14, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  TranslatedText("${project.collaborators.length} collaborator${project.collaborators.length > 1 ? 's' : ''}",
+                    style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showInviteDialog(BuildContext context, DatabaseService db, Project project) {
+    final emailCtrl = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const TranslatedText("Invite Collaborator"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const TranslatedText("Enter their email to work together on this project.",
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: emailCtrl,
+                enabled: !isLoading,
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  hintText: 'user@example.com',
+                  labelStyle: const TextStyle(color: Color(0xFF1A73E8)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 2),
+                  ),
+                  prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF1A73E8)),
+                  filled: true,
+                  fillColor: Colors.grey.withAlpha(10),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(ctx),
+              child: const TranslatedText("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: isLoading ? null : () async {
+                if (emailCtrl.text.isEmpty) return;
+                
+                setState(() => isLoading = true);
+                
+                try {
+                  final userDoc = await db.getUserByEmail(emailCtrl.text);
+                  if (userDoc == null) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: TranslatedText("User not found"), backgroundColor: Colors.red),
+                      );
+                    }
+                    setState(() => isLoading = false);
+                    return;
+                  }
+                  
+                  if (userDoc.id == db.uid) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: TranslatedText("You cannot invite yourself")),
+                      );
+                    }
+                    setState(() => isLoading = false);
+                    return;
+                  }
+
+                  final collaborators = List<String>.from(project.collaborators);
+                  if (collaborators.contains(userDoc.id)) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: TranslatedText("User already a collaborator")),
+                      );
+                    }
+                    Navigator.pop(ctx);
+                    return;
+                  }
+
+                  final invite = AppNotification(
+                    id: '',
+                    recipientId: userDoc.id,
+                    senderId: db.uid,
+                    senderName: FirebaseAuth.instance.currentUser?.displayName ?? "Someone",
+                    type: 'invite',
+                    title: 'Project Invitation',
+                    body: 'invites you to collaborate on project "${project.name}"',
+                    status: 'pending',
+                    projectId: project.id,
+                    createdAt: DateTime.now(),
+                  );
+
+                  await db.sendNotification(invite);
+                  
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: TranslatedText("Invitation sent successfully!"),
+                        backgroundColor: Color(0xFF0F9D58),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  setState(() => isLoading = false);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: TranslatedText("Something went wrong"), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F9D58), // Green for positive action
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: isLoading 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const TranslatedText("Send Invite", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -185,16 +343,31 @@ class ProjectsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const TranslatedText("Delete Project?"),
-        content: TranslatedText("Are you sure you want to delete \"${project.name}\"?"),
+        content: TranslatedText("Are you sure you want to delete \"${project.name}\"? This action cannot be undone."),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const TranslatedText("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
             onPressed: () {
               db.deleteProject(project.id);
               Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: TranslatedText("Project deleted"), backgroundColor: Colors.red),
+              );
             },
-            child: const TranslatedText("Delete", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDB4437), // Red for delete
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const TranslatedText("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

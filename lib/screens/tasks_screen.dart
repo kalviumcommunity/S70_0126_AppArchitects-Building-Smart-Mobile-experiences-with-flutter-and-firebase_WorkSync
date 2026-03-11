@@ -11,7 +11,11 @@ class TasksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final db = Provider.of<DatabaseService>(context);
+    final db = context.watch<DatabaseService?>();
+
+    if (db == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -209,16 +213,31 @@ class TasksScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const TranslatedText("Delete Task?"),
         content: TranslatedText("Are you sure you want to delete \"${task.title}\"?"),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const TranslatedText("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
             onPressed: () {
               db.deleteTask(task.id);
               Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: TranslatedText("Task deleted"), backgroundColor: Colors.red),
+              );
             },
-            child: const TranslatedText("Delete", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDB4437),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const TranslatedText("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

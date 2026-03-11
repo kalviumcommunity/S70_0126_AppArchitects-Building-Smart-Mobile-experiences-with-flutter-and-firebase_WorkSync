@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../services/database_service.dart';
 import '../models/team_member.dart';
 import '../widgets/translated_text.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/app_notification.dart';
 
 class TeamScreen extends StatelessWidget {
   const TeamScreen({super.key});
@@ -226,16 +228,31 @@ class TeamScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const TranslatedText("Remove Member?"),
         content: TranslatedText("Are you sure you want to remove ${member.name} from the team?"),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const TranslatedText("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
             onPressed: () {
               db.deleteTeamMember(member.id);
               Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: TranslatedText("Member removed"), backgroundColor: Colors.red),
+              );
             },
-            child: const TranslatedText("Remove", style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDB4437),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const TranslatedText("Remove", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -289,35 +306,80 @@ class TeamScreen extends StatelessWidget {
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF4B400),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () async {
-                if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) return;
-                final m = TeamMember(
-                  id: member?.id ?? '',
-                  userId: db.uid,
-                  name: nameCtrl.text.trim(),
-                  email: emailCtrl.text.trim(),
-                  role: role,
-                );
-                if (member == null) {
-                  await db.addTeamMember(m);
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const TranslatedText("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) return;
+              final m = TeamMember(
+                id: member?.id ?? '',
+                userId: db.uid,
+                name: nameCtrl.text.trim(),
+                email: emailCtrl.text.trim(),
+                role: role,
+              );
+              if (member == null) {
+                final targetUser = await db.getUserByEmail(m.email);
+                if (targetUser != null && targetUser.id != db.uid) {
+                  final currentUserDoc = await FirebaseFirestore.instance.collection('users').doc(db.uid).get();
+                  final currentUserName = currentUserDoc.data()?['name'] ?? 'Someone';
+                  
+                  final notif = AppNotification(
+                    id: '',
+                    recipientId: targetUser.id,
+                    senderId: db.uid,
+                    senderName: currentUserName,
+                    type: 'team_invite',
+                    title: 'Team Invitation',
+                    body: 'invited you to join their team as a $role.',
+                    status: 'pending',
+                    projectId: 'role:$role',
+                    createdAt: DateTime.now(),
+                  );
+                  await db.sendNotification(notif);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: TranslatedText('Team invitation sent to ${targetUser['name'] ?? m.name}!'), backgroundColor: const Color(0xFF0F9D58)),
+                    );
+                    Navigator.pop(ctx);
+                  }
+                  return;
                 } else {
-                  await db.updateTeamMember(m);
+                  db.addTeamMember(m);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: TranslatedText("Member added successfully!"), backgroundColor: Color(0xFF0F9D58)),
+                    );
+                  }
                 }
-                if (context.mounted) Navigator.pop(ctx);
-              },
-              child: Text(member == null ? 'Add' : 'Save'),
+              } else {
+                db.updateTeamMember(m);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: TranslatedText("Member updated successfully!"), backgroundColor: Color(0xFF0F9D58)),
+                  );
+                }
+              }
+              if (context.mounted) {
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F9D58), // Green for positive action
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-          ],
-        ),
+            child: Text(member == null ? 'Add' : 'Save', style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

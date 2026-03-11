@@ -7,7 +7,8 @@ import 'forgot_password_screen.dart';
 import '../widgets/translated_text.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? email;
+  const LoginScreen({super.key, this.email});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -19,6 +20,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.email != null) {
+      emailController.text = widget.email!;
+    }
+  }
 
   // Sign in with Firebase Auth so currentUser is properly set
   Future<void> loginUser() async {
@@ -39,6 +48,14 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email,
         password: password,
       );
+
+      // Save email for account switching
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      List<String> savedEmails = prefs.getStringList('saved_emails') ?? [];
+      if (!savedEmails.contains(email)) {
+        savedEmails.add(email);
+        await prefs.setStringList('saved_emails', savedEmails);
+      }
       
       if (mounted) {
         Navigator.pushReplacement(

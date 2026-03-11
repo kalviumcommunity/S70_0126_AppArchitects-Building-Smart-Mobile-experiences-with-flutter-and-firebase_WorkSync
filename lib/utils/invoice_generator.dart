@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/payment.dart';
+import '../widgets/translated_text.dart';
 
 class InvoiceGenerator {
   static Future<void> generateAndDownloadInvoice(BuildContext context, Payment payment) async {
@@ -161,27 +162,41 @@ class InvoiceGenerator {
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          title: const Text('Download Invoice'),
-          content: const Text('Do you want to preview/save as PDF or save directly to Camera Roll as an Image?'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const TranslatedText('Download Invoice'),
+          content: const TranslatedText('Do you want to preview/save as PDF or save directly to Camera Roll as an Image?'),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           actions: [
-            TextButton(
+            OutlinedButton.icon(
               onPressed: () {
                 Navigator.of(ctx).pop();
                 _saveAsPdf(context, pdf, payment);
               },
-              child: const Text('Save as PDF'),
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+              label: const TranslatedText('PDF'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF1A73E8),
+                side: const BorderSide(color: Color(0xFF1A73E8)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
-            TextButton(
+            ElevatedButton.icon(
               onPressed: () {
                 Navigator.of(ctx).pop();
                 _saveToGallery(context, pdf, payment);
               },
-              child: const Text('Save to Camera Roll'),
+              icon: const Icon(Icons.image_outlined, size: 18),
+              label: const TranslatedText('Image'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F9D58),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
-            TextButton.icon(
+            TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              icon: const Icon(Icons.cancel_rounded, color: Colors.redAccent),
-              label: const Text('Cancel', style: TextStyle(color: Colors.redAccent)),
+              child: const TranslatedText('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             ),
           ],
         );

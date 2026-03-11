@@ -20,6 +20,8 @@ import '../services/notification_service.dart';
 import 'messages_screen.dart';
 import '../services/language_provider.dart';
 import '../widgets/translated_text.dart';
+import 'notifications_screen.dart';
+import '../models/app_notification.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -191,8 +193,28 @@ class DashboardScreen extends StatelessWidget {
         children: [
           // Greeting row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              GestureDetector(
+                onTap: () {
+                  // Navigate to profile if needed
+                },
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.white24,
+                  backgroundImage: imageProvider,
+                  child: imageProvider == null
+                      ? Text(
+                          firstName.isNotEmpty ? firstName[0].toUpperCase() : "U",
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -210,20 +232,31 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.white24,
-                backgroundImage: imageProvider,
-                child: imageProvider == null
-                    ? Text(
-                        firstName.isNotEmpty ? firstName[0].toUpperCase() : "U",
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+              const Spacer(),
+              StreamBuilder<List<AppNotification>>(
+                stream: context.read<DatabaseService?>()?.notifications ?? const Stream.empty(),
+                builder: (context, snapshot) {
+                  final hasPending = snapshot.hasData && snapshot.data!.any((n) => n.status == 'pending');
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                        icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 28),
+                      ),
+                      if (hasPending)
+                        Positioned(
+                          right: 10,
+                          top: 10,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(color: Color(0xFFE53935), shape: BoxShape.circle),
+                            constraints: const BoxConstraints(minWidth: 10, minHeight: 10),
+                          ),
                         ),
-                      )
-                    : null,
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -366,7 +399,7 @@ class DashboardScreen extends StatelessWidget {
   // DEADLINES TODAY
   // ───────────────────────────────────────────────────────────────────────────
   Widget _buildDeadlinesToday(BuildContext context, String uid) {
-    final db = Provider.of<DatabaseService?>(context);
+    final db = context.watch<DatabaseService?>();
     final lang = Provider.of<LanguageProvider>(context);
     final now = DateTime.now();
 
@@ -598,12 +631,6 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // CATEGORIES GRID
-  // ───────────────────────────────────────────────────────────────────────────
-  Widget _buildFeaturedCarousel(BuildContext context, String uid) {
-    return _FeaturedCarousel(uid: uid);
-  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // CATEGORIES GRID
@@ -637,6 +664,7 @@ class DashboardScreen extends StatelessWidget {
         icon: Icons.folder_special_rounded,
         color: const Color(0xFF1A73E8),
         bgColor: const Color(0xFFE8F0FE),
+        badge: _ProjectBadge(uid: uid),
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const ProjectsScreen()),
@@ -647,6 +675,7 @@ class DashboardScreen extends StatelessWidget {
         icon: Icons.event_note_rounded,
         color: const Color(0xFF00ACC1),
         bgColor: const Color(0xFFE0F7FA),
+        badge: _TaskBadge(uid: uid),
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const ScheduleScreen()),
@@ -657,6 +686,7 @@ class DashboardScreen extends StatelessWidget {
         icon: Icons.groups_rounded,
         color: const Color(0xFFF4B400),
         bgColor: const Color(0xFFFFFDE7),
+        badge: _TeamBadge(uid: uid),
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const TeamScreen()),
@@ -677,6 +707,7 @@ class DashboardScreen extends StatelessWidget {
         icon: Icons.receipt_long_rounded,
         color: const Color(0xFF00897B),
         bgColor: const Color(0xFFE0F2F1),
+        badge: _PaymentBadge(uid: uid), // Using payment badge for invoices too
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const PaymentsScreen()),
@@ -759,16 +790,6 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: TranslatedText("$feature — coming soon!"),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF1A73E8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // QUICK ACTIONS
@@ -1170,7 +1191,7 @@ class _ClientBadge extends StatelessWidget {
           width: 18,
           height: 18,
           decoration: const BoxDecoration(
-            color: Color(0xFF1A1A1A), // Dark neutral color for count
+            color: Colors.red, // Changed to Red
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -1184,6 +1205,130 @@ class _ClientBadge extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _ProjectBadge extends StatelessWidget {
+  final String uid;
+  const _ProjectBadge({required this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    final db = context.read<DatabaseService?>();
+    if (db == null) return const SizedBox();
+    return StreamBuilder<List<AppNotification>>(
+      stream: db.notifications,
+      builder: (context, snap) {
+        final int count = snap.hasData ? snap.data!.where((n) => n.status == 'pending').length : 0;
+        if (count == 0) return const SizedBox();
+        return Container(
+          width: 18,
+          height: 18,
+          decoration: const BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              count > 9 ? "9+" : count.toString(),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TaskBadge extends StatelessWidget {
+  final String uid;
+  const _TaskBadge({required this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('tasks')
+          .where('userId', isEqualTo: uid)
+          .where('status', isNotEqualTo: 'Completed')
+          .snapshots(),
+      builder: (context, snap) {
+        final int count = snap.hasData ? snap.data!.docs.length : 0;
+        if (count == 0) return const SizedBox();
+        return Container(
+          width: 18,
+          height: 18,
+          decoration: const BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              count > 9 ? "9+" : count.toString(),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TeamBadge extends StatelessWidget {
+  final String uid;
+  const _TeamBadge({required this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('team')
+          .where('userId', isEqualTo: uid)
+          .snapshots(),
+      builder: (context, snap) {
+        final int count = snap.hasData ? snap.data!.docs.length : 0;
+        if (count == 0) return const SizedBox();
+        return Container(
+          width: 18,
+          height: 18,
+          decoration: const BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              count > 9 ? "9+" : count.toString(),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DotBadge extends StatelessWidget {
+  const _DotBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: const BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
@@ -1205,7 +1350,7 @@ class _DeadlineNotifierState extends State<_DeadlineNotifier> {
 
   @override
   Widget build(BuildContext context) {
-    final db = Provider.of<DatabaseService?>(context);
+    final db = context.watch<DatabaseService?>();
     if (db == null) return const SizedBox.shrink();
 
     return StreamBuilder<DocumentSnapshot>(
@@ -1301,7 +1446,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
       children: [
         CarouselSlider(
           options: CarouselOptions(
-            height: 170.0,
+            height: 180.0,
             autoPlay: true,
             enlargeCenterPage: true,
             viewportFraction: 0.88,
@@ -1351,7 +1496,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1364,12 +1509,12 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                 ),
                                 child: Icon(slide['icon'] as IconData, color: Colors.white, size: 28),
                               ),
-                              const Spacer(),
+                              const SizedBox(height: 12),
                               Text(
                                 slide['title'] as String,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 24,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
                                 ),

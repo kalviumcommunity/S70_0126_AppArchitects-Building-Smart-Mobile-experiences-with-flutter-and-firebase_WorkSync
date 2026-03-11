@@ -1,0 +1,2 @@
+WARNING|STATIC_WARNING|UNNECESSARY_CAST|/Users/yashashrgowda/S70_0126_AppArchitects-Building-Smart-Mobile-experiences-with-flutter-and-firebase_WorkSync/lib/services/database_service.dart|79|39|32|Unnecessary cast.
+WARNING|STATIC_WARNING|UNNECESSARY_CAST|/Users/yashashrgowda/S70_0126_AppArchitects-Building-Smart-Mobile-experiences-with-flutter-and-firebase_WorkSync/lib/services/database_service.dart|106|39|32|Unnecessary cast.
