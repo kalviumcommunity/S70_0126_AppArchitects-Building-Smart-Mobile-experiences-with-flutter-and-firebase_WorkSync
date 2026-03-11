@@ -3,10 +3,18 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/database_service.dart';
 import '../models/payment.dart';
+import '../models/client.dart';
+import '../widgets/translated_text.dart';
+import '../utils/invoice_generator.dart';
 
-class PaymentsScreen extends StatelessWidget {
+class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
 
+  @override
+  State<PaymentsScreen> createState() => _PaymentsScreenState();
+}
+
+class _PaymentsScreenState extends State<PaymentsScreen> {
   @override
   Widget build(BuildContext context) {
     final db = Provider.of<DatabaseService?>(context);
@@ -24,8 +32,7 @@ class PaymentsScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          "Payments",
+        title: TranslatedText("Payments",
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -55,7 +62,7 @@ class PaymentsScreen extends StatelessWidget {
         onPressed: () => _showPaymentDialog(context, db!, null),
         backgroundColor: const Color(0xFF1A73E8),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Add Payment", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const TranslatedText("Add Payment", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -120,8 +127,7 @@ class PaymentsScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      "\$${payment.amount.toStringAsFixed(2)}",
+                    TranslatedText("₹${payment.amount.toStringAsFixed(2)}",
                       style: TextStyle(
                         fontWeight: FontWeight.bold, 
                         fontSize: 18,
@@ -129,6 +135,12 @@ class PaymentsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.download_rounded, color: Colors.blueAccent, size: 20),
+                      onPressed: () => InvoiceGenerator.generateAndDownloadInvoice(context, payment),
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
                       onPressed: () => _confirmDelete(context, db, payment),
@@ -164,8 +176,7 @@ class PaymentsScreen extends StatelessWidget {
         children: [
           Icon(Icons.payment_outlined, size: 80, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          Text(
-            "No payments recorded",
+          TranslatedText("No payments recorded",
             style: TextStyle(color: Colors.grey.shade500, fontSize: 18, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
@@ -176,7 +187,7 @@ class PaymentsScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text("Record Your First Payment"),
+            child: const TranslatedText("Record Your First Payment"),
           ),
         ],
       ),
@@ -187,16 +198,16 @@ class PaymentsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Payment?"),
-        content: Text("Are you sure you want to delete this payment from \"${payment.clientName}\"?"),
+        title: const TranslatedText("Delete Payment?"),
+        content: TranslatedText("Are you sure you want to delete this payment from \"${payment.clientName}\"?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
             onPressed: () {
               db.deletePayment(payment.id);
               Navigator.pop(ctx);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const TranslatedText("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -230,7 +241,7 @@ class PaymentsScreen extends StatelessWidget {
                 TextField(
                   decoration: InputDecoration(
                     labelText: 'Amount',
-                    prefixIcon: const Icon(Icons.attach_money_rounded),
+                    prefixIcon: const Icon(Icons.currency_rupee_rounded),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   keyboardType: TextInputType.number,
@@ -255,7 +266,7 @@ class PaymentsScreen extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A73E8),

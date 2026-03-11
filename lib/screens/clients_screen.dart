@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/database_service.dart';
 import '../models/client.dart';
+import '../widgets/translated_text.dart';
 
 class ClientsScreen extends StatelessWidget {
   const ClientsScreen({super.key});
@@ -23,8 +24,7 @@ class ClientsScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          "My Clients",
+        title: TranslatedText("My Clients",
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -53,7 +53,7 @@ class ClientsScreen extends StatelessWidget {
         onPressed: () => _showClientDialog(context, db!, null),
         backgroundColor: const Color(0xFF1A73E8),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("New Client", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const TranslatedText("New Client", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -116,8 +116,7 @@ class ClientsScreen extends StatelessWidget {
         children: [
           Icon(Icons.people_outline_rounded, size: 80, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          Text(
-            "No clients yet",
+          TranslatedText("No clients yet",
             style: TextStyle(color: Colors.grey.shade500, fontSize: 18, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
@@ -128,7 +127,7 @@ class ClientsScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text("Add Your First Client"),
+            child: const TranslatedText("Add Your First Client"),
           ),
         ],
       ),
@@ -139,16 +138,16 @@ class ClientsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Client?"),
-        content: Text("Are you sure you want to delete ${c.name}?"),
+        title: const TranslatedText("Delete Client?"),
+        content: TranslatedText("Are you sure you want to delete ${c.name}?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
             onPressed: () {
               db.deleteClient(c.id);
               Navigator.pop(ctx);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const TranslatedText("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -200,7 +199,7 @@ class ClientsScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1A73E8),

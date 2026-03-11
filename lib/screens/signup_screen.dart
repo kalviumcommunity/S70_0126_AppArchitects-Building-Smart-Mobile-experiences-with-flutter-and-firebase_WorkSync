@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'main_navigation.dart';
+import '../widgets/translated_text.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -27,14 +29,14 @@ class _SignupScreenState extends State<SignupScreen> {
     // Basic Validation
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
+        const SnackBar(content: TranslatedText("Please fill all fields")),
       );
       return;
     }
 
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password must be at least 6 characters")),
+        const SnackBar(content: TranslatedText("Password must be at least 6 characters")),
       );
       return;
     }
@@ -73,7 +75,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Signup Successful. Please login."),
+          content: TranslatedText("Signup Successful. Please login."),
           backgroundColor: Colors.green,
         ),
       );
@@ -95,7 +97,7 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Firebase Error: ${e.message}")),
+        SnackBar(content: TranslatedText("Firebase Error: ${e.message}")),
       );
     } catch (e, stacktrace) {
       print("Generic Exception caught: $e");
@@ -104,7 +106,7 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
+        SnackBar(content: TranslatedText("Error: ${e.toString()}")),
       );
     }
   }
@@ -129,8 +131,7 @@ class _SignupScreenState extends State<SignupScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
 
-                Text(
-                  "Create Account",
+                TranslatedText("Create Account",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,
@@ -188,8 +189,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     child: isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      "Sign Up",
+                        : const TranslatedText("Sign Up",
                       style: TextStyle(fontSize: 18),
                     ),
                   ),

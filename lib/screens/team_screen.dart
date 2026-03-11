@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/database_service.dart';
 import '../models/team_member.dart';
+import '../widgets/translated_text.dart';
 
 class TeamScreen extends StatelessWidget {
   const TeamScreen({super.key});
@@ -33,7 +34,7 @@ class TeamScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("Team", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        title: TranslatedText("Team", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: StreamBuilder<List<TeamMember>>(
@@ -65,7 +66,7 @@ class TeamScreen extends StatelessWidget {
         onPressed: () => _showMemberDialog(context, db, null),
         backgroundColor: const Color(0xFFF4B400),
         icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-        label: const Text("Add Member", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const TranslatedText("Add Member", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -101,12 +102,10 @@ class TeamScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "${members.length} Member${members.length == 1 ? '' : 's'}",
+              TranslatedText("${members.length} Member${members.length == 1 ? '' : 's'}",
                 style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              Text(
-                "${roleCount.keys.length} different role${roleCount.keys.length == 1 ? '' : 's'}",
+              TranslatedText("${roleCount.keys.length} different role${roleCount.keys.length == 1 ? '' : 's'}",
                 style: TextStyle(color: Colors.white.withAlpha(200), fontSize: 13),
               ),
             ],
@@ -203,14 +202,14 @@ class TeamScreen extends StatelessWidget {
         children: [
           Icon(Icons.groups_outlined, size: 80, color: Colors.grey.withAlpha(50)),
           const SizedBox(height: 16),
-          Text("No team members yet", style: TextStyle(color: Colors.grey.withAlpha(150), fontSize: 18, fontWeight: FontWeight.w500)),
+          TranslatedText("No team members yet", style: TextStyle(color: Colors.grey.withAlpha(150), fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          Text("Build your team by adding members", style: TextStyle(color: Colors.grey.withAlpha(100), fontSize: 13)),
+          TranslatedText("Build your team by adding members", style: TextStyle(color: Colors.grey.withAlpha(100), fontSize: 13)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => _showMemberDialog(context, db, null),
             icon: const Icon(Icons.person_add_rounded),
-            label: const Text("Add First Member"),
+            label: const TranslatedText("Add First Member"),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF4B400),
               foregroundColor: Colors.white,
@@ -227,16 +226,16 @@ class TeamScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Remove Member?"),
-        content: Text("Are you sure you want to remove ${member.name} from the team?"),
+        title: const TranslatedText("Remove Member?"),
+        content: TranslatedText("Are you sure you want to remove ${member.name} from the team?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
             onPressed: () {
               db.deleteTeamMember(member.id);
               Navigator.pop(ctx);
             },
-            child: const Text("Remove", style: TextStyle(color: Colors.red)),
+            child: const TranslatedText("Remove", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -291,7 +290,7 @@ class TeamScreen extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF4B400),

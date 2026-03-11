@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../models/message.dart';
+import '../widgets/translated_text.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -135,7 +136,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Text(widget.otherUserName,
                       style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
-                  const Text("Online", style: TextStyle(color: Colors.green, fontSize: 11)),
+                  const TranslatedText("Online", style: TextStyle(color: Colors.green, fontSize: 11)),
                 ],
               ),
             ),
@@ -170,7 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       children: [
                         Icon(Icons.waving_hand_rounded, size: 50, color: Colors.amber.withAlpha(180)),
                         const SizedBox(height: 12),
-                        Text("Say hi to ${widget.otherUserName}!", style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                        TranslatedText("Say hi to ${widget.otherUserName}!", style: const TextStyle(color: Colors.grey, fontSize: 16)),
                       ],
                     ),
                   );

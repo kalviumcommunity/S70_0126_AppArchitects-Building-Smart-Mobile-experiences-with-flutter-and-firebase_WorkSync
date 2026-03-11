@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../services/database_service.dart';
 import '../models/task.dart';
 import 'task_screen.dart';
+import '../widgets/translated_text.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -33,8 +34,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          "Schedule",
+        title: TranslatedText("Schedule",
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -260,12 +260,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         children: [
           Icon(Icons.event_available_rounded, size: 80, color: Colors.grey.withAlpha(50)),
           const SizedBox(height: 16),
-          Text(
-            "Nothing scheduled",
+          TranslatedText("Nothing scheduled",
             style: TextStyle(color: Colors.grey.withAlpha(150), fontSize: 18, fontWeight: FontWeight.w500),
           ),
-          Text(
-            "Take some rest or add a task",
+          TranslatedText("Take some rest or add a task",
             style: TextStyle(color: Colors.grey.withAlpha(100), fontSize: 13),
           ),
         ],

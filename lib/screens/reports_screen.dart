@@ -5,6 +5,7 @@ import '../models/task.dart';
 import '../models/payment.dart';
 import '../models/project.dart';
 import '../models/client.dart';
+import '../widgets/translated_text.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -25,7 +26,7 @@ class ReportsScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("Reports", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        title: TranslatedText("Reports", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: StreamBuilder<List<Task>>(
@@ -94,7 +95,7 @@ class ReportsScreen extends StatelessWidget {
             _buildStatCard(context, "Total Tasks", tasks.length.toString(), Icons.task_alt_rounded, const Color(0xFF1A73E8)),
             _buildStatCard(context, "Clients", clients.length.toString(), Icons.people_alt_rounded, const Color(0xFF0F9D58)),
             _buildStatCard(context, "Projects", projects.length.toString(), Icons.folder_special_rounded, const Color(0xFFDB4437)),
-            _buildStatCard(context, "Revenue", "\$${totalRevenue.toStringAsFixed(0)}", Icons.account_balance_wallet_rounded, const Color(0xFF7B2FF7)),
+            _buildStatCard(context, "Revenue", "₹${totalRevenue.toStringAsFixed(0)}", Icons.account_balance_wallet_rounded, const Color(0xFF7B2FF7)),
           ],
         ),
 
@@ -210,7 +211,7 @@ class ReportsScreen extends StatelessWidget {
               Icon(icon, color: color, size: 20),
               const SizedBox(width: 8),
               Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-              Text("${(progress * 100).toStringAsFixed(0)}%", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+              TranslatedText("${(progress * 100).toStringAsFixed(0)}%", style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
             ],
           ),
           const SizedBox(height: 4),
@@ -270,8 +271,8 @@ class ReportsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Total Revenue", style: TextStyle(color: Colors.white70, fontSize: 13)),
-          Text("\$${total.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+          const TranslatedText("Total Revenue", style: TextStyle(color: Colors.white70, fontSize: 13)),
+          TranslatedText("₹${total.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -285,9 +286,9 @@ class ReportsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _revenueChip("Collected", "\$${collected.toStringAsFixed(0)}", Colors.greenAccent)),
+              Expanded(child: _revenueChip("Collected", "₹${collected.toStringAsFixed(0)}", Colors.greenAccent)),
               const SizedBox(width: 12),
-              Expanded(child: _revenueChip("Pending", "\$${pending.toStringAsFixed(0)}", Colors.orangeAccent)),
+              Expanded(child: _revenueChip("Pending", "₹${pending.toStringAsFixed(0)}", Colors.orangeAccent)),
             ],
           ),
         ],
@@ -362,7 +363,7 @@ class ReportsScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-            Text("$count", style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            TranslatedText("$count", style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 6),

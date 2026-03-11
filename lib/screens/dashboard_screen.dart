@@ -1,8 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import '../services/database_service.dart';
 import '../models/task.dart';
 import 'task_screen.dart';
@@ -15,17 +18,20 @@ import 'team_screen.dart';
 import 'reports_screen.dart';
 import '../services/notification_service.dart';
 import 'messages_screen.dart';
+import '../services/language_provider.dart';
+import '../widgets/translated_text.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     if (currentUser == null) {
       return const Scaffold(
-        body: Center(child: Text("Please login again")),
+        body: Center(child: TranslatedText("Please login again")),
       );
     }
 
@@ -52,10 +58,12 @@ class DashboardScreen extends StatelessWidget {
               .get(),
           builder: (context, userSnap) {
             String userName = "User";
+            String? photoUrl;
             if (userSnap.hasData && userSnap.data!.docs.isNotEmpty) {
               final data =
                   userSnap.data!.docs.first.data() as Map<String, dynamic>;
               userName = data['name'] ?? "User";
+              photoUrl = data['photoUrl'];
             }
 
             final String firstName = userName.split(' ').first;
@@ -72,14 +80,19 @@ class DashboardScreen extends StatelessWidget {
                     _DeadlineNotifier(uid: uid),
 
                     // ── HEADER ──────────────────────────────────────────────
-                    _buildHeader(context, greeting, firstName, userName, uid),
+                    _buildHeader(context, greeting, firstName, userName, uid, photoUrl),
 
                     const SizedBox(height: 24),
+
+                    // ── FEATURED SLIDES ─────────────────────────────────────
+                    _FeaturedCarousel(uid: uid),
+
+                    const SizedBox(height: 28),
 
                     // ── TASK STATS ──────────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildSectionTitle(context, "Overview"),
+                      child: _buildSectionTitle(context, lang.translate("Dashboard")), // Using Dashboard for Overview
                     ),
                     const SizedBox(height: 12),
                     Padding(
@@ -100,7 +113,7 @@ class DashboardScreen extends StatelessWidget {
                     // ── CATEGORIES GRID ─────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildSectionTitle(context, "Categories"),
+                      child: _buildSectionTitle(context, lang.translate("Explore Tools")), 
                     ),
                     const SizedBox(height: 12),
                     Padding(
@@ -113,7 +126,7 @@ class DashboardScreen extends StatelessWidget {
                     // ── QUICK ACTIONS ───────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildSectionTitle(context, "Quick Actions"),
+                      child: _buildSectionTitle(context, lang.translate("Tasks")), // Using Tasks 
                     ),
                     const SizedBox(height: 12),
                     Padding(
@@ -129,7 +142,7 @@ class DashboardScreen extends StatelessWidget {
                       child: _buildRecentTasks(context, uid),
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 120),
                   ],
                 ),
               ),
@@ -144,12 +157,26 @@ class DashboardScreen extends StatelessWidget {
   // HEADER
   // ───────────────────────────────────────────────────────────────────────────
   Widget _buildHeader(BuildContext context, String greeting, String firstName,
-      String fullName, String uid) {
+      String fullName, String uid, String? photoUrl) {
+    ImageProvider? imageProvider;
+    if (photoUrl != null && photoUrl.startsWith("data:image")) {
+      try {
+        final String base64String = photoUrl.split(",")[1];
+        imageProvider = MemoryImage(base64Decode(base64String));
+      } catch (e) {
+        // ignore
+      }
+    }
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)],
+          colors: [
+            Color(0xFF6A11CB), // Purple
+            Color(0xFF2575FC), // Blue
+            Color(0xFF00C9FF), // Cyan
+          ],
+          stops: [0.0, 0.5, 1.0],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -169,8 +196,7 @@ class DashboardScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "$greeting,",
+                  TranslatedText("$greeting,",
                     style: const TextStyle(fontSize: 16, color: Colors.white70),
                   ),
                   const SizedBox(height: 4),
@@ -187,14 +213,17 @@ class DashboardScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 28,
                 backgroundColor: Colors.white24,
-                child: Text(
-                  firstName.isNotEmpty ? firstName[0].toUpperCase() : "U",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                backgroundImage: imageProvider,
+                child: imageProvider == null
+                    ? Text(
+                        firstName.isNotEmpty ? firstName[0].toUpperCase() : "U",
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      )
+                    : null,
               ),
             ],
           ),
@@ -248,8 +277,7 @@ class DashboardScreen extends StatelessWidget {
                         const Icon(Icons.payment,
                             color: Colors.white, size: 13),
                         const SizedBox(width: 5),
-                        Text(
-                          "$pendingCount pending payment${pendingCount > 1 ? 's' : ''}",
+                        TranslatedText("$pendingCount pending payment${pendingCount > 1 ? 's' : ''}",
                           style: const TextStyle(
                               color: Colors.white, fontSize: 12),
                         ),
@@ -272,8 +300,9 @@ class DashboardScreen extends StatelessWidget {
     return Text(
       title,
       style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
         color: Theme.of(context).colorScheme.onSurface,
       ),
     );
@@ -310,22 +339,22 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _miniStatCard(context, "Total", total.toString(),
-                  Icons.assignment_outlined, const Color(0xFF1A73E8)),
+                  Icons.assignment_outlined, const Color(0xFF1A73E8), total == 0 ? 0 : 1.0),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _miniStatCard(context, "Done", completed.toString(),
-                  Icons.check_circle_outline, const Color(0xFF0F9D58)),
+                  Icons.check_circle_outline, const Color(0xFF0F9D58), total == 0 ? 0 : completed / total),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _miniStatCard(context, "Pending", pending.toString(),
-                  Icons.hourglass_empty, const Color(0xFFF4B400)),
+                  Icons.hourglass_empty, const Color(0xFFF4B400), total == 0 ? 0 : pending / total),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _miniStatCard(context, "Active", inProgress.toString(),
-                  Icons.autorenew, const Color(0xFFDB4437)),
+                  Icons.autorenew, const Color(0xFFDB4437), total == 0 ? 0 : inProgress / total),
             ),
           ],
         );
@@ -338,19 +367,20 @@ class DashboardScreen extends StatelessWidget {
   // ───────────────────────────────────────────────────────────────────────────
   Widget _buildDeadlinesToday(BuildContext context, String uid) {
     final db = Provider.of<DatabaseService?>(context);
+    final lang = Provider.of<LanguageProvider>(context);
     final now = DateTime.now();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle(context, "Deadlines Today"),
+        _buildSectionTitle(context, lang.translate("Due Today")),
         const SizedBox(height: 12),
         StreamBuilder<List<Task>>(
           stream: db?.tasks ?? const Stream.empty(),
           builder: (context, snap) {
             if (snap.hasError) {
               debugPrint("Deadlines Error: ${snap.error}");
-              return Text("Error: ${snap.error}");
+              return TranslatedText("Error: ${snap.error}");
             }
             if (snap.connectionState == ConnectionState.waiting) {
               return const SizedBox(height: 50, child: Center(child: LinearProgressIndicator()));
@@ -374,22 +404,20 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.sentiment_satisfied_alt_rounded, color: Color(0xFF0F9D58), size: 30),
+                    const _AnimatedFloatingIcon(icon: Icons.local_cafe_rounded, color: Color(0xFF0F9D58)),
                     const SizedBox(width: 15),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Relax!",
+                          TranslatedText("Relax!",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          Text(
-                            "No deadlines for you today.",
+                          TranslatedText("No deadlines for you today.",
                             style: TextStyle(
                               fontSize: 13,
                               color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
@@ -497,39 +525,67 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _miniStatCard(
-      BuildContext context, String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: color.withAlpha((0.08 * 255).round()),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
+      BuildContext context, String label, String value, IconData icon, Color color, double progress) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardTheme.color?.withOpacity(0.7) ?? Theme.of(context).colorScheme.surface.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.black.withOpacity(0.05),
+                Colors.transparent,
+              ],
             ),
-            child: Icon(icon, color: color, size: 18),
+            boxShadow: [
+              BoxShadow(
+                color: color.withAlpha((0.08 * 255).round()),
+                blurRadius: 15,
+                offset: const Offset(4, 4),
+              ),
+              const BoxShadow(
+                color: Colors.white12,
+                blurRadius: 15,
+                offset: Offset(-4, -4),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
+          child: Column(
+            children: [
+          SizedBox(
+            height: 40,
+            width: 40,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 3.5,
+                  backgroundColor: color.withOpacity(0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  strokeCap: StrokeCap.round,
+                ),
+                Center(
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 12),
           Text(
             label,
             style:
@@ -537,7 +593,16 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
+    ),
+    ),
     );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CATEGORIES GRID
+  // ───────────────────────────────────────────────────────────────────────────
+  Widget _buildFeaturedCarousel(BuildContext context, String uid) {
+    return _FeaturedCarousel(uid: uid);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -658,9 +723,10 @@ class DashboardScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: cat.color.withAlpha((0.15 * 255).round()),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+                          color: cat.color.withAlpha((0.3 * 255).round()),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
+                          spreadRadius: -1,
                         ),
                       ],
                     ),
@@ -696,7 +762,7 @@ class DashboardScreen extends StatelessWidget {
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("$feature — coming soon!"),
+        content: TranslatedText("$feature — coming soon!"),
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF1A73E8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -810,19 +876,19 @@ class DashboardScreen extends StatelessWidget {
   // RECENT TASKS — live stream, last 5
   // ───────────────────────────────────────────────────────────────────────────
   Widget _buildRecentTasks(BuildContext context, String uid) {
+    final lang = Provider.of<LanguageProvider>(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildSectionTitle(context, "Recent Tasks"),
+            _buildSectionTitle(context, lang.translate("Tasks")),
             GestureDetector(
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const TasksScreen()));
               },
-              child: const Text(
-                "See all →",
+              child: const TranslatedText("See all →",
                 style: TextStyle(
                   color: Color(0xFF1A73E8),
                   fontSize: 14,
@@ -876,14 +942,12 @@ class DashboardScreen extends StatelessWidget {
           Icon(Icons.assignment_outlined,
               size: 48, color: Colors.grey.shade300),
           const SizedBox(height: 10),
-          Text(
-            "No tasks yet",
+          TranslatedText("No tasks yet",
             style: TextStyle(
                 color: Colors.grey.shade500, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 6),
-          Text(
-            "Tap \"New Task\" to get started",
+          TranslatedText("Tap \"New Task\" to get started",
             style:
                 TextStyle(color: Colors.grey.shade400, fontSize: 13),
           ),
@@ -1144,31 +1208,269 @@ class _DeadlineNotifierState extends State<_DeadlineNotifier> {
     final db = Provider.of<DatabaseService?>(context);
     if (db == null) return const SizedBox.shrink();
 
-    return StreamBuilder<List<Task>>(
-      stream: db.tasks,
-      builder: (context, snap) {
-        if (!_notified && snap.hasData) {
-          final now = DateTime.now();
-          final todayTitles = snap.data!
-              .where((t) =>
-                  t.dueDate.year == now.year &&
-                  t.dueDate.month == now.month &&
-                  t.dueDate.day == now.day &&
-                  t.status.toLowerCase() != 'completed' &&
-                  t.status.toLowerCase() != 'done')
-              .map((t) => t.title)
-              .toList();
-
-          if (todayTitles.isNotEmpty) {
-            _notified = true;
-            // Fire after the frame so the widget tree is stable
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              NotificationService().showDeadlinesToday(todayTitles);
-            });
-          }
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(widget.uid).snapshots(),
+      builder: (context, userSnap) {
+        bool notificationsEnabled = true;
+        if (userSnap.hasData && userSnap.data!.exists) {
+          final data = userSnap.data!.data() as Map<String, dynamic>;
+          notificationsEnabled = data['notificationsEnabled'] ?? true;
         }
-        return const SizedBox.shrink();
+
+        if (!notificationsEnabled) {
+          return const SizedBox.shrink();
+        }
+
+        return StreamBuilder<List<Task>>(
+          stream: db.tasks,
+          builder: (context, snap) {
+            if (!_notified && snap.hasData) {
+              final now = DateTime.now();
+              final todayTitles = snap.data!
+                  .where((t) =>
+                      t.dueDate.year == now.year &&
+                      t.dueDate.month == now.month &&
+                      t.dueDate.day == now.day &&
+                      t.status.toLowerCase() != 'completed' &&
+                      t.status.toLowerCase() != 'done')
+                  .map((t) => t.title)
+                  .toList();
+
+              if (todayTitles.isNotEmpty) {
+                _notified = true;
+                // Fire after the frame so the widget tree is stable
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  NotificationService().showDeadlinesToday(todayTitles);
+                });
+              }
+            }
+            return const SizedBox.shrink();
+          },
+        );
       },
+    );
+  }
+}// ─────────────────────────────────────────────────────────────────────────────
+// FEATURED CAROUSEL WIDGET
+// ─────────────────────────────────────────────────────────────────────────────
+class _FeaturedCarousel extends StatefulWidget {
+  final String uid;
+  const _FeaturedCarousel({required this.uid});
+
+  @override
+  State<_FeaturedCarousel> createState() => _FeaturedCarouselState();
+}
+
+class _FeaturedCarouselState extends State<_FeaturedCarousel> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Map<String, dynamic>> slides = [
+      {
+        'title': 'Projects',
+        'subtitle': 'Track progress & deliverables',
+        'icon': Icons.folder_special,
+        'color': const Color(0xFF1A73E8),
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen())),
+      },
+      {
+        'title': 'Clients',
+        'subtitle': 'Build better relationships',
+        'icon': Icons.people_alt_rounded,
+        'color': const Color(0xFF0F9D58),
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ClientsScreen())),
+      },
+      {
+        'title': 'Payments',
+        'subtitle': 'Invoices & pending dues',
+        'icon': Icons.account_balance_wallet_rounded,
+        'color': const Color(0xFF7B2FF7),
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentsScreen())),
+      },
+      {
+        'title': 'Schedule',
+        'subtitle': 'Plan your meetings & tasks',
+        'icon': Icons.event_note_rounded,
+        'color': const Color(0xFF00ACC1),
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleScreen())),
+      },
+    ];
+
+    return Column(
+      children: [
+        CarouselSlider(
+          options: CarouselOptions(
+            height: 170.0,
+            autoPlay: true,
+            enlargeCenterPage: true,
+            viewportFraction: 0.88,
+            autoPlayInterval: const Duration(seconds: 4),
+            autoPlayAnimationDuration: const Duration(milliseconds: 800),
+            autoPlayCurve: Curves.fastOutSlowIn,
+            onPageChanged: (index, reason) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+          ),
+          items: slides.map((slide) {
+            return Builder(
+              builder: (BuildContext context) {
+                return GestureDetector(
+                  onTap: slide['onTap'] as VoidCallback,
+                  child: Container(
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          (slide['color'] as Color).withOpacity(0.8),
+                          (slide['color'] as Color),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (slide['color'] as Color).withOpacity(0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        )
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          right: -20,
+                          bottom: -20,
+                          child: Icon(
+                            slide['icon'] as IconData,
+                            size: 140,
+                            color: Colors.white.withOpacity(0.15),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(slide['icon'] as IconData, color: Colors.white, size: 28),
+                              ),
+                              const Spacer(),
+                              Text(
+                                slide['title'] as String,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                slide['subtitle'] as String,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: slides.asMap().entries.map((entry) {
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: _currentIndex == entry.key ? 20.0 : 8.0,
+              height: 8.0,
+              margin: const EdgeInsets.symmetric(horizontal: 4.0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+                color: _currentIndex == entry.key
+                    ? (slides[entry.key]['color'] as Color)
+                    : Colors.grey.withOpacity(0.4),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _AnimatedFloatingIcon extends StatefulWidget {
+  final IconData icon;
+  final Color color;
+  const _AnimatedFloatingIcon({required this.icon, required this.color});
+
+  @override
+  State<_AnimatedFloatingIcon> createState() => _AnimatedFloatingIconState();
+}
+
+class _AnimatedFloatingIconState extends State<_AnimatedFloatingIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: -5.0, end: 5.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _animation.value),
+          child: child,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: widget.color.withAlpha(50),
+              blurRadius: 15,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Icon(widget.icon, color: widget.color, size: 40),
+      ),
     );
   }
 }

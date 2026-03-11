@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../models/message.dart';
 import 'chat_screen.dart';
+import '../widgets/translated_text.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -51,7 +52,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("Messages", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        title: TranslatedText("Messages", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
           IconButton(
@@ -183,7 +184,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     color: const Color(0xFFE91E8C),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text("New", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: const TranslatedText("New", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
               ],
             ],
@@ -210,14 +211,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
         children: [
           Icon(Icons.chat_bubble_outline_rounded, size: 80, color: Colors.grey.withAlpha(50)),
           const SizedBox(height: 16),
-          Text("No messages yet", style: TextStyle(color: Colors.grey.withAlpha(150), fontSize: 18, fontWeight: FontWeight.w500)),
+          TranslatedText("No messages yet", style: TextStyle(color: Colors.grey.withAlpha(150), fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          Text("Start a conversation", style: TextStyle(color: Colors.grey.withAlpha(100), fontSize: 13)),
+          TranslatedText("Start a conversation", style: TextStyle(color: Colors.grey.withAlpha(100), fontSize: 13)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: _showNewConversationDialog,
             icon: const Icon(Icons.edit_outlined),
-            label: const Text("New Message"),
+            label: const TranslatedText("New Message"),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE91E8C),
               foregroundColor: Colors.white,
@@ -236,7 +237,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("New Message"),
+        title: const TranslatedText("New Message"),
         content: TextField(
           controller: emailCtrl,
           decoration: InputDecoration(
@@ -248,7 +249,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE91E8C),
@@ -261,7 +262,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               Navigator.pop(ctx);
               await _startConversationWithEmail(email);
             },
-            child: const Text("Start Chat"),
+            child: const TranslatedText("Start Chat"),
           ),
         ],
       ),
@@ -277,7 +278,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (userSnap.docs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("No user found with email: $email"),
+          content: TranslatedText("No user found with email: $email"),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -293,7 +294,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
     if (otherId == _uid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You can't message yourself!"), behavior: SnackBarBehavior.floating),
+        const SnackBar(content: TranslatedText("You can't message yourself!"), behavior: SnackBarBehavior.floating),
       );
       return;
     }

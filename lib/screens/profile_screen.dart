@@ -5,12 +5,19 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:local_auth/local_auth.dart';
 import '../services/database_service.dart';
+import '../services/theme_provider.dart';
+import '../services/language_provider.dart';
+import 'login_screen.dart';
 import '../models/project.dart';
 import '../models/task.dart';
 import '../models/client.dart';
-import '../services/theme_provider.dart';
-import 'login_screen.dart';
+import 'about_screen.dart';
+import 'help_center_screen.dart';
+import '../utils/app_security.dart';
+import '../widgets/translated_text.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,12 +33,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
+      AppSecurity.pauseLifecycleLock = true;
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
         maxWidth: 200, // Reduced size for Base64 storage
         maxHeight: 200,
         imageQuality: 50, // Higher compression to keep Firestore documents small
       );
+      AppSecurity.lastAuthenticateTime = DateTime.now();
+      AppSecurity.pauseLifecycleLock = false;
 
       if (pickedFile != null) {
         setState(() => _isUploading = true);
@@ -51,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             await Provider.of<DatabaseService>(context, listen: false).updateUserPhoto(dataUrl);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Profile photo updated successfully!'),
+                content: TranslatedText('Profile photo updated successfully!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -61,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating photo: $e')),
+          SnackBar(content: TranslatedText('Error updating photo: $e')),
         );
       }
     } finally {
@@ -73,12 +83,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickCover(ImageSource source) async {
     try {
+      AppSecurity.pauseLifecycleLock = true;
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
         maxWidth: 800,
         maxHeight: 600,
         imageQuality: 60,
       );
+      AppSecurity.lastAuthenticateTime = DateTime.now();
+      AppSecurity.pauseLifecycleLock = false;
 
       if (pickedFile != null) {
         setState(() => _isUploadingCover = true);
@@ -96,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             await Provider.of<DatabaseService>(context, listen: false).updateUserCover(dataUrl);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Cover photo updated successfully!'),
+                content: TranslatedText('Cover photo updated successfully!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -106,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating cover: $e')),
+          SnackBar(content: TranslatedText('Error updating cover: $e')),
         );
       }
     } finally {
@@ -114,6 +127,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isUploadingCover = false);
       }
     }
+  }
+
+  void _confirmRemovePhoto() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const TranslatedText("Remove Photo"),
+        content: const TranslatedText("Are you sure you want to remove your profile photo?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                setState(() => _isUploading = true);
+                if (mounted) {
+                  await Provider.of<DatabaseService>(context, listen: false).updateUserPhoto("remove_photo");
+                  setState(() => _isUploading = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: TranslatedText('Profile photo removed'), backgroundColor: Colors.green),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const TranslatedText("Remove"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmRemoveCover() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const TranslatedText("Remove Background"),
+        content: const TranslatedText("Are you sure you want to remove your background image?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                setState(() => _isUploadingCover = true);
+                if (mounted) {
+                  await Provider.of<DatabaseService>(context, listen: false).updateUserCover("remove_cover");
+                  setState(() => _isUploadingCover = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: TranslatedText('Background removed'), backgroundColor: Colors.green),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const TranslatedText("Remove"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showColorPicker() {
@@ -136,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Select Background Color", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const TranslatedText("Select Background Color", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               Wrap(
                 spacing: 12,
@@ -197,11 +280,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text("Background Image", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: TranslatedText("Background Image", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF1A73E8)),
-                title: const Text("Take Photo"),
+                title: const TranslatedText("Take Photo"),
                 onTap: () {
                   Navigator.pop(context);
                   _pickCover(ImageSource.camera);
@@ -209,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF1A73E8)),
-                title: const Text("Choose from Gallery"),
+                title: const TranslatedText("Choose from Gallery"),
                 onTap: () {
                   Navigator.pop(context);
                   _pickCover(ImageSource.gallery);
@@ -217,10 +300,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.color_lens_rounded, color: Color(0xFF1A73E8)),
-                title: const Text("Choose Solid Color"),
+                title: const TranslatedText("Choose Solid Color"),
                 onTap: () {
                   Navigator.pop(context);
                   _showColorPicker();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                title: const TranslatedText("Remove Background", style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmRemoveCover();
                 },
               ),
               const SizedBox(height: 20),
@@ -234,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("$feature coming soon!"),
+        content: TranslatedText("$feature coming soon!"),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -247,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Edit Profile"),
+        title: const TranslatedText("Edit Profile"),
         content: TextField(
           controller: nameCtrl,
           decoration: InputDecoration(
@@ -256,7 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           ElevatedButton(
             onPressed: () async {
               if (nameCtrl.text.isEmpty) return;
@@ -272,10 +363,220 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: const Color(0xFF1A73E8),
               foregroundColor: Colors.white,
             ),
-            child: const Text("Save"),
+            child: const TranslatedText("Save"),
           ),
         ],
       ),
+    );
+  }
+
+  void _showLanguagePicker(String currentTargetLang) {
+    final indianLanguages = ["Hindi", "Bengali", "Telugu", "Marathi", "Tamil", "Urdu", "Gujarati", "Kannada", "Odia", "Malayalam"];
+    final internationalLanguages = ["English", "Mandarin", "Spanish", "French", "Arabic", "Russian", "Portuguese", "German", "Japanese"];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: TranslatedText("Select Language", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+              Expanded(
+                child: DefaultTabController(
+                  length: 2,
+                  child: Column(
+                    children: [
+                      const TabBar(
+                        labelColor: Color(0xFF1A73E8),
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: Color(0xFF1A73E8),
+                        tabs: [Tab(text: "Indian"), Tab(text: "International")],
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            ListView.builder(
+                              itemCount: indianLanguages.length,
+                              itemBuilder: (ctx, i) => ListTile(
+                                title: Text(indianLanguages[i]),
+                                trailing: currentTargetLang == indianLanguages[i] ? const Icon(Icons.check, color: Color(0xFF1A73E8)) : null,
+                                onTap: () => _updateLanguage(indianLanguages[i], context),
+                              ),
+                            ),
+                            ListView.builder(
+                              itemCount: internationalLanguages.length,
+                              itemBuilder: (ctx, i) => ListTile(
+                                title: Text(internationalLanguages[i]),
+                                trailing: currentTargetLang == internationalLanguages[i] ? const Icon(Icons.check, color: Color(0xFF1A73E8)) : null,
+                                onTap: () => _updateLanguage(internationalLanguages[i], context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateLanguage(String newLang, BuildContext ctx) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({'language': newLang});
+    }
+    if (ctx.mounted) {
+      Provider.of<LanguageProvider>(ctx, listen: false).setLanguage(newLang);
+      Navigator.pop(ctx);
+    }
+  }
+
+  void _showSecurityBottomSheet() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isBiometricEnabled = prefs.getBool('${user.uid}_biometric_enabled') ?? false;
+    bool isFaceUnlockEnabled = prefs.getBool('${user.uid}_face_unlock_enabled') ?? false;
+
+    final LocalAuthentication auth = LocalAuthentication();
+    List<BiometricType> availableBiometrics = [];
+    try {
+      availableBiometrics = await auth.getAvailableBiometrics();
+    } catch (e) {}
+    
+    // Check if Face ID or strong biometrics are available
+    bool hasFaceId = availableBiometrics.contains(BiometricType.face) || 
+                     availableBiometrics.contains(BiometricType.strong);
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: TranslatedText("Security", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                  ListTile(
+                    leading: const Icon(Icons.lock_reset, color: Color(0xFF1A73E8)),
+                    title: const TranslatedText("Reset Password"),
+                    subtitle: const TranslatedText("Send a password reset email"),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user?.email != null) {
+                        try {
+                          await FirebaseAuth.instance.sendPasswordResetEmail(email: user!.email!);
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: TranslatedText('Password reset email sent!'), backgroundColor: Colors.green));
+                        } catch (e) {
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: TranslatedText('Error: $e'), backgroundColor: Colors.red));
+                        }
+                      }
+                    },
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.fingerprint, color: Color(0xFF1A73E8)),
+                    title: const TranslatedText("App Lock (Device Passcode or Biometric)"),
+                    subtitle: const TranslatedText("Require authentication to open the app"),
+                    value: isBiometricEnabled,
+                    activeColor: const Color(0xFF1A73E8),
+                    onChanged: (val) async {
+                      try {
+                        final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+                        final bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+                        
+                        if (!canAuthenticate) {
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: TranslatedText('Authentication not available on this device.')));
+                          return;
+                        }
+
+                        AppSecurity.isAuthenticating = true;
+                        final bool didAuthenticate = await auth.authenticate(
+                          localizedReason: 'Please authenticate to toggle security setting',
+                          biometricOnly: false,
+                        );
+                        AppSecurity.lastAuthenticateTime = DateTime.now();
+                        Future.delayed(const Duration(milliseconds: 500), () {
+                          AppSecurity.isAuthenticating = false;
+                        });
+
+                        if (didAuthenticate) {
+                          await prefs.setBool('${user.uid}_biometric_enabled', val);
+                          setModalState(() => isBiometricEnabled = val);
+                        }
+                      } catch (e) {
+                        AppSecurity.lastAuthenticateTime = DateTime.now();
+                        Future.delayed(const Duration(milliseconds: 500), () {
+                          AppSecurity.isAuthenticating = false;
+                        });
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: TranslatedText('Error during authentication: $e')));
+                      }
+                    },
+                  ),
+                  if (hasFaceId)
+                    SwitchListTile(
+                      secondary: const Icon(Icons.face_retouching_natural, color: Color(0xFF1A73E8)),
+                      title: const TranslatedText("Face Unlock"),
+                      subtitle: const TranslatedText("Require Face ID to open the app"),
+                      value: isFaceUnlockEnabled,
+                      activeColor: const Color(0xFF1A73E8),
+                      onChanged: (val) async {
+                        try {
+                          AppSecurity.isAuthenticating = true;
+                          final bool didAuthenticate = await auth.authenticate(
+                            localizedReason: 'Verify Face ID to toggle Face Unlock',
+                            biometricOnly: false,
+                          );
+                          AppSecurity.lastAuthenticateTime = DateTime.now();
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            AppSecurity.isAuthenticating = false;
+                          });
+
+                          if (didAuthenticate) {
+                            await prefs.setBool('${user.uid}_face_unlock_enabled', val);
+                            setModalState(() => isFaceUnlockEnabled = val);
+                          }
+                        } catch (e) {
+                          AppSecurity.lastAuthenticateTime = DateTime.now();
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            AppSecurity.isAuthenticating = false;
+                          });
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: TranslatedText('Error during Face ID toggle: $e')));
+                        }
+                      },
+                    ),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            );
+          }
+        );
+      },
     );
   }
 
@@ -285,9 +586,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -303,14 +604,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  "Profile Photo",
+                child: TranslatedText("Profile Photo",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF1A73E8)),
-                title: const Text("Take Photo"),
+                title: const TranslatedText("Take Photo"),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImage(ImageSource.camera);
@@ -318,10 +618,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF1A73E8)),
-                title: const Text("Choose from Gallery"),
+                title: const TranslatedText("Choose from Gallery"),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                title: const TranslatedText("Remove Photo", style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmRemovePhoto();
                 },
               ),
               const SizedBox(height: 20),
@@ -334,6 +642,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
     final user = FirebaseAuth.instance.currentUser;
     final String userEmail = user?.email ?? "user@worksync.com";
 
@@ -355,31 +664,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
                         builder: (context, snapshot) {
                           String userName = "WorkSync User";
+                          bool notificationsEnabled = true;
+                          String currentLanguage = "English";
                           if (snapshot.hasData && snapshot.data!.exists) {
-                            userName = (snapshot.data!.data() as Map<String, dynamic>)['name'] ?? "WorkSync User";
+                            final data = snapshot.data!.data() as Map<String, dynamic>;
+                            userName = data['name'] ?? "WorkSync User";
+                            notificationsEnabled = data['notificationsEnabled'] ?? true;
+                            currentLanguage = data['language'] ?? "English";
                           }
 
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildSectionTitle("Account Settings"),
+                              _buildSectionTitle(lang.translate("Account Settings")),
                               const SizedBox(height: 12),
                               _buildSettingsCard(context, [
                                 _SettingsItem(
                                   icon: Icons.person_outline,
-                                  label: "Edit Profile",
+                                  label: lang.translate("Edit Profile"),
                                   onTap: () => _showEditProfileDialog(context, userName),
                                 ),
                                 _SettingsItem(
                                   icon: Icons.notifications_none_rounded,
-                                  label: "Notifications",
-                                  trailing: const Text("On", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                                  onTap: () => _showComingSoon(context, "Notifications toggle"),
+                                  label: lang.translate("Notifications"),
+                                  trailing: Switch(
+                                    value: notificationsEnabled,
+                                    onChanged: (val) async {
+                                      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                                        'notificationsEnabled': val,
+                                      });
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(val ? "Notifications Enabled" : "Notifications Disabled"),
+                                            behavior: SnackBarBehavior.floating,
+                                            backgroundColor: val ? Colors.green : Colors.grey.shade800,
+                                            duration: const Duration(seconds: 2),
+                                          )
+                                        );
+                                      }
+                                    },
+                                    activeColor: const Color(0xFF1A73E8),
+                                  ),
+                                  onTap: () async {
+                                    bool newValue = !notificationsEnabled;
+                                    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                                      'notificationsEnabled': newValue,
+                                    });
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(newValue ? "Notifications Enabled" : "Notifications Disabled"),
+                                          behavior: SnackBarBehavior.floating,
+                                          backgroundColor: newValue ? Colors.green : Colors.grey.shade800,
+                                          duration: const Duration(seconds: 2),
+                                        )
+                                      );
+                                    }
+                                  },
                                 ),
                                 _SettingsItem(
                                   icon: Icons.security_outlined,
-                                  label: "Security",
-                                  onTap: () => _showComingSoon(context, "Security settings"),
+                                  label: lang.translate("Security"),
+                                  onTap: () => _showSecurityBottomSheet(),
                                 ),
                               ]),
                             ],
@@ -389,50 +736,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionTitle("Account Settings"),
+                          _buildSectionTitle(lang.translate("Account Settings")),
                           const SizedBox(height: 12),
                           _buildSettingsCard(context, [
                             _SettingsItem(
                               icon: Icons.person_outline,
-                              label: "Edit Profile",
+                              label: lang.translate("Edit Profile"),
                               onTap: () => _showEditProfileDialog(context, "WorkSync User"),
                             ),
                             _SettingsItem(
                               icon: Icons.notifications_none_rounded,
-                              label: "Notifications",
-                              trailing: const Text("On", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                              onTap: () => _showComingSoon(context, "Notifications toggle"),
+                              label: lang.translate("Notifications"),
+                              trailing: Switch(
+                                value: false,
+                                onChanged: null,
+                                activeColor: const Color(0xFF1A73E8),
+                              ),
+                              onTap: () => _showComingSoon(context, "Login to use notifications"),
                             ),
                             _SettingsItem(
                               icon: Icons.security_outlined,
-                              label: "Security",
-                              onTap: () => _showComingSoon(context, "Security settings"),
+                              label: lang.translate("Security"),
+                              onTap: () => _showSecurityBottomSheet(),
                             ),
                           ]),
                         ],
                       ),
                   const SizedBox(height: 28),
-                  _buildSectionTitle("Preferences"),
+                  _buildSectionTitle(lang.translate("Preferences")),
                   const SizedBox(height: 12),
-                  Consumer<ThemeProvider>(
-                    builder: (context, theme, _) => _buildSettingsCard(context, [
-                      _SettingsItem(
-                        icon: Icons.language_rounded,
-                        label: "Language",
-                        trailing: const Text("English", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                        onTap: () => _showComingSoon(context, "Language selection"),
-                      ),
-                      _SettingsItem(
-                        icon: Icons.dark_mode_outlined,
-                        label: "Dark Mode",
-                        trailing: Switch(
-                          value: theme.isDarkMode,
-                          onChanged: (val) => theme.toggleTheme(val),
-                          activeColor: const Color(0xFF1A73E8),
-                        ),
-                        onTap: () => theme.toggleTheme(!theme.isDarkMode),
-                      ),
-                    ]),
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: user?.uid != null ? FirebaseFirestore.instance.collection('users').doc(user!.uid).snapshots() : const Stream.empty(),
+                    builder: (context, snapshot) {
+                      String currentLanguage = "English";
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                        currentLanguage = (snapshot.data!.data() as Map<String, dynamic>)['language'] ?? "English";
+                      }
+                      return Consumer<ThemeProvider>(
+                        builder: (context, theme, _) => _buildSettingsCard(context, [
+                          _SettingsItem(
+                            icon: Icons.language_rounded,
+                            label: "Language",
+                            trailing: Text(currentLanguage, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            onTap: () => _showLanguagePicker(currentLanguage),
+                          ),
+                          _SettingsItem(
+                            icon: Icons.dark_mode_outlined,
+                            label: "Dark Mode",
+                            trailing: Switch(
+                              value: theme.isDarkMode,
+                              onChanged: (val) => theme.toggleTheme(val),
+                              activeColor: const Color(0xFF1A73E8),
+                            ),
+                            onTap: () => theme.toggleTheme(!theme.isDarkMode),
+                          ),
+                        ]),
+                      );
+                    },
                   ),
                   const SizedBox(height: 28),
                   _buildSectionTitle("More"),
@@ -441,17 +801,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _SettingsItem(
                       icon: Icons.help_outline_rounded,
                       label: "Help Center",
-                      onTap: () => _showComingSoon(context, "Help Center"),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpCenterScreen())),
                     ),
                     _SettingsItem(
                       icon: Icons.info_outline_rounded,
                       label: "About WorkSync",
-                      onTap: () => _showComingSoon(context, "About WorkSync"),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
                     ),
                   ]),
-                  const SizedBox(height: 40),
-                  _buildLogoutButton(context),
-                  const SizedBox(height: 40),
+                   const SizedBox(height: 40),
+                   _buildLogoutButton(context),
+                   const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -781,16 +1141,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             context: context,
             builder: (ctx) => AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text("Logout"),
-              content: const Text("Are you sure you want to log out?"),
+              title: const TranslatedText("Logout"),
+              content: const TranslatedText("Are you sure you want to log out?"),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text("Cancel"),
+                  child: const TranslatedText("Cancel"),
                 ),
                 ElevatedButton(
                   onPressed: () async {
                     Navigator.pop(ctx); // Close dialog
+                    SharedPreferences prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('biometric_enabled', false);
+                    await prefs.setBool('face_unlock_enabled', false);
                     await FirebaseAuth.instance.signOut();
                     if (context.mounted) {
                       Navigator.of(context).pushAndRemoveUntil(
@@ -803,15 +1166,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     backgroundColor: const Color(0xFFDB4437),
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text("Logout"),
+                  child: const TranslatedText("Logout"),
                 ),
               ],
             ),
           );
         },
         icon: const Icon(Icons.logout_rounded, color: Colors.white),
-        label: const Text(
-          "Logout",
+        label: const TranslatedText("Logout",
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+import '../widgets/translated_text.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -7,7 +8,7 @@ class ProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
+      appBar: AppBar(title: const TranslatedText('My Profile')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -17,11 +18,10 @@ class ProfileTab extends StatelessWidget {
               child: Icon(Icons.person, size: 50),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'WorkSync User',
+            const TranslatedText('WorkSync User',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const Text('user@worksync.com'),
+            const TranslatedText('user@worksync.com'),
             const SizedBox(height: 30),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade100),
@@ -32,7 +32,7 @@ class ProfileTab extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
                 );
               },
-              child: const Text('Logout', style: TextStyle(color: Colors.red)),
+              child: const TranslatedText('Logout', style: TextStyle(color: Colors.red)),
             ),
           ],
         ),

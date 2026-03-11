@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/task.dart';
 import '../services/database_service.dart';
+import '../widgets/translated_text.dart';
 
 class TaskScreen extends StatefulWidget {
   final Task? task;
@@ -33,13 +34,13 @@ class _TaskScreenState extends State<TaskScreen> {
   Future<void> _saveTask() async {
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a task title.')),
+        const SnackBar(content: TranslatedText('Please enter a task title.')),
       );
       return;
     }
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a due date.')),
+        const SnackBar(content: TranslatedText('Please select a due date.')),
       );
       return;
     }
@@ -78,7 +79,7 @@ class _TaskScreenState extends State<TaskScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: TranslatedText('Error: $e')),
         );
       }
     }

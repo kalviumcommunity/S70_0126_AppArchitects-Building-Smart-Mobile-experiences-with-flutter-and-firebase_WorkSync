@@ -10,6 +10,8 @@
 <string>This app needs access to photos for profile picture selection.</string>
 <key>NSMicrophoneUsageDescription</key>
 <string>This app needs access to the microphone for recording video.</string>
+<key>NSFaceIDUsageDescription</key>
+<string>This app needs Face ID to authenticate you securely.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

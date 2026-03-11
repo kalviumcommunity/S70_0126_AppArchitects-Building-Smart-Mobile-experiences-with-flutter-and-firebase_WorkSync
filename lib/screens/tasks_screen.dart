@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../services/database_service.dart';
 import '../models/task.dart';
 import 'task_screen.dart';
+import '../widgets/translated_text.dart';
 
 class TasksScreen extends StatelessWidget {
   const TasksScreen({super.key});
@@ -15,8 +16,7 @@ class TasksScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          "My Tasks",
+        title: TranslatedText("My Tasks",
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface, 
             fontWeight: FontWeight.bold, 
@@ -39,7 +39,7 @@ class TasksScreen extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
+            return Center(child: TranslatedText("Error: ${snapshot.error}"));
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -49,7 +49,7 @@ class TasksScreen extends StatelessWidget {
           final tasks = snapshot.data!;
 
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
             itemCount: tasks.length,
             itemBuilder: (context, index) {
               return _buildTaskCard(context, db, tasks[index]);
@@ -66,8 +66,7 @@ class TasksScreen extends StatelessWidget {
         },
         backgroundColor: Colors.blue,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "New Task",
+        label: const TranslatedText("New Task",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
@@ -172,8 +171,7 @@ class TasksScreen extends StatelessWidget {
                     children: [
                       Icon(Icons.calendar_today, size: 16, color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round())),
                       const SizedBox(width: 8),
-                      Text(
-                        "Due: ${DateFormat('MMM dd, yyyy').format(task.dueDate)}",
+                      TranslatedText("Due: ${DateFormat('MMM dd, yyyy').format(task.dueDate)}",
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface.withAlpha((0.6 * 255).round()), 
                           fontSize: 13, 
@@ -211,16 +209,16 @@ class TasksScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Task?"),
-        content: Text("Are you sure you want to delete \"${task.title}\"?"),
+        title: const TranslatedText("Delete Task?"),
+        content: TranslatedText("Are you sure you want to delete \"${task.title}\"?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
             onPressed: () {
               db.deleteTask(task.id);
               Navigator.pop(ctx);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const TranslatedText("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -240,8 +238,7 @@ class TasksScreen extends StatelessWidget {
               child: const Icon(Icons.assignment_outlined, size: 80, color: Colors.blue),
             ),
             const SizedBox(height: 24),
-            Text(
-              "No Tasks Yet", 
+            TranslatedText("No Tasks Yet", 
               style: TextStyle(
                 fontSize: 22, 
                 fontWeight: FontWeight.bold,
@@ -249,8 +246,7 @@ class TasksScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              "Your task list is empty. Start by creating a new task to stay organized.",
+            const TranslatedText("Your task list is empty. Start by creating a new task to stay organized.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
@@ -260,7 +256,7 @@ class TasksScreen extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const TaskScreen()));
               },
               icon: const Icon(Icons.add),
-              label: const Text("Create Your First Task"),
+              label: const TranslatedText("Create Your First Task"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,

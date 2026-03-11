@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
+import '../widgets/translated_text.dart';
 
 class HomeTab extends StatelessWidget {
   final List<Task> tasks;
@@ -10,10 +11,10 @@ class HomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Tasks'),
+        title: const TranslatedText('My Tasks'),
       ),
       body: tasks.isEmpty
-          ? const Center(child: Text('No tasks found. Add one!'))
+          ? const Center(child: TranslatedText('No tasks found. Add one!'))
           : ListView.builder(
               itemCount: tasks.length,
               itemBuilder: (context, index) {

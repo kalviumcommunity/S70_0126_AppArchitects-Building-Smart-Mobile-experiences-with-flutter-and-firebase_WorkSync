@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/database_service.dart';
 import '../models/project.dart';
+import '../widgets/translated_text.dart';
 
 class ProjectsScreen extends StatelessWidget {
   const ProjectsScreen({super.key});
@@ -24,8 +25,7 @@ class ProjectsScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          "Projects",
+        title: TranslatedText("Projects",
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -55,7 +55,7 @@ class ProjectsScreen extends StatelessWidget {
         onPressed: () => _showProjectDialog(context, db!, null),
         backgroundColor: const Color(0xFF1A73E8),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("New Project", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const TranslatedText("New Project", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -142,8 +142,7 @@ class ProjectsScreen extends StatelessWidget {
               children: [
                 Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.onSurface.withAlpha((0.5 * 255).round())),
                 const SizedBox(width: 6),
-                Text(
-                  "Created: ${DateFormat('MMM dd, yyyy').format(project.createdAt)}",
+                TranslatedText("Created: ${DateFormat('MMM dd, yyyy').format(project.createdAt)}",
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface.withAlpha((0.6 * 255).round()), 
                     fontSize: 12,
@@ -164,8 +163,7 @@ class ProjectsScreen extends StatelessWidget {
         children: [
           Icon(Icons.folder_open_rounded, size: 80, color: Colors.grey.shade300),
           const SizedBox(height: 16),
-          Text(
-            "No projects found",
+          TranslatedText("No projects found",
             style: TextStyle(color: Colors.grey.shade500, fontSize: 18, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
@@ -176,7 +174,7 @@ class ProjectsScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text("Create Your First Project"),
+            child: const TranslatedText("Create Your First Project"),
           ),
         ],
       ),
@@ -187,16 +185,16 @@ class ProjectsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Delete Project?"),
-        content: Text("Are you sure you want to delete \"${project.name}\"?"),
+        title: const TranslatedText("Delete Project?"),
+        content: TranslatedText("Are you sure you want to delete \"${project.name}\"?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText("Cancel")),
           TextButton(
             onPressed: () {
               db.deleteProject(project.id);
               Navigator.pop(ctx);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const TranslatedText("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -255,7 +253,7 @@ class ProjectsScreen extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A73E8),

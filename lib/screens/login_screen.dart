@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'signup_screen.dart';
-import 'main_navigation.dart';
+import 'login_anim_screen.dart';
+import 'forgot_password_screen.dart';
+import '../widgets/translated_text.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter email and password")),
+        const SnackBar(content: TranslatedText("Please enter email and password")),
       );
       return;
     }
@@ -36,10 +39,11 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email,
         password: password,
       );
+      
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const MainNavigation()),
+          MaterialPageRoute(builder: (context) => const LoginAnimScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -64,8 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 80),
-                Text(
-                  "WorkSync",
+                TranslatedText("WorkSync",
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -73,8 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  "Login to your account",
+                const TranslatedText("Login to your account",
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 40),
@@ -108,7 +110,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
+                
+                // Forgot Password Link
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                      );
+                    },
+                    child: const TranslatedText("Forgot Password?",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
                 
                 // Login Button
                 SizedBox(
@@ -125,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Login", style: TextStyle(fontSize: 16)),
+                        : const TranslatedText("Login", style: TextStyle(fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -134,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account? "),
+                    const TranslatedText("Don't have an account? "),
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -142,8 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           MaterialPageRoute(builder: (context) => const SignupScreen()),
                         );
                       },
-                      child: const Text(
-                        "Sign Up",
+                      child: const TranslatedText("Sign Up",
                         style: TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,

@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
 import 'clients_screen.dart';
 import 'tasks_screen.dart';
+import '../widgets/translated_text.dart';
 
 // Home with bottom navigation: Dashboard, Clients, Tasks
 class HomeScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WorkSync'),
+        title: const TranslatedText('WorkSync'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
